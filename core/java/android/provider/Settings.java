@@ -1973,6 +1973,36 @@ public final class Settings {
             "notifications_use_ring_volume";
 
         /**
+         * Volume Overlay Mode, This is behaviour of the volume overlay panel
+         * Defaults to 1 - which is expandable
+         * @hide
+         */
+        public static final String MODE_VOLUME_OVERLAY = "mode_volume_overlay";
+
+        /** @hide */
+        public static final int VOLUME_OVERLAY_SINGLE = 0;
+        /** @hide */
+        public static final int VOLUME_OVERLAY_EXPANDABLE = 1;
+        /** @hide */
+        public static final int VOLUME_OVERLAY_EXPANDED = 2;
+        /** @hide */
+        public static final int VOLUME_OVERLAY_NONE = 3;
+
+        /**
+         * Volume Adjust Sounds Enable, This is the noise made when using volume hard buttons
+         * Defaults to 1 - sounds enabled
+         * @hide
+         */
+        public static final String VOLUME_ADJUST_SOUNDS_ENABLED = "volume_adjust_sounds_enabled";
+
+        /**
+         * Boolean value whether to link ringtone and notification volumes
+         *
+         * @hide
+         */
+        public static final String VOLUME_LINK_NOTIFICATION = "volume_link_notification";
+
+        /**
          * Whether silent mode should allow vibration feedback. This is used
          * internally in AudioService and the Sound settings activity to
          * coordinate decoupling of vibrate and silent modes. This setting
@@ -2600,6 +2630,62 @@ public final class Settings {
          * @hide
          */
         public static final String VOLUME_MUSIC_CONTROLS = "volume_music_controls";
+
+        /**
+         * Whether to prevent loud volume levels when headset is first plugged in.
+         * @hide
+         */
+        public static final String SAFE_HEADSET_VOLUME = "safe_headset_volume";
+
+        /**
+         * Electronic beam animation mode
+         * 0 = off,
+         * 1 = always horizontal,
+         * 2 = always vertical,
+         * 3 = dependent on orientation
+         * @hide
+         */
+        public static final String SYSTEM_POWER_CRT_MODE = "system_power_crt_mode";
+
+        /**
+          * Volume keys control cursor in text fields (default is 0)
+          * 0 - Disabled
+          * 1 - Volume up/down moves cursor left/right
+          * 2 - Volume up/down moves cursor right/left
+          * @hide
+          */
+         public static final String VOLUME_KEY_CURSOR_CONTROL = "volume_key_cursor_control";
+
+        /**
+         * Override and forcefully disable the fullscreen keyboard
+         * @hide
+         */
+        public static final String DISABLE_FULLSCREEN_KEYBOARD = "disable_fullscreen_keyboard";
+
+        /**
+         * Whether to show the IME switcher in the status bar
+         * @hide
+         */
+        public static final String STATUS_BAR_IME_SWITCHER = "status_bar_ime_switcher";
+
+        /**
+         * Automatic keyboard rotation timeout.  0 to disable completely.
+         * @hide
+         */
+        public static final String KEYBOARD_ROTATION_TIMEOUT = "keyboard_rotation_timeout";
+
+        /**
+         * Forces formal text input.  1 to replace emoticon key with enter key.
+         * @hide
+         */
+        public static final String FORMAL_TEXT_INPUT = "formal_text_input";
+
+        /**
+        * Whether to control brightness from status bar
+        *
+        * @hide
+        */
+       public static final String STATUS_BAR_BRIGHTNESS_CONTROL = "status_bar_brightness_control";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
