@@ -430,8 +430,8 @@ public class AudioService extends IAudioService.Stub {
     // Devices for which the volume is fixed and VolumePanel slider should be disabled
     final int mFixedVolumeDevices = AudioSystem.DEVICE_OUT_AUX_DIGITAL |
             AudioSystem.DEVICE_OUT_DGTL_DOCK_HEADSET |
-            AudioSystem.DEVICE_OUT_ANLG_DOCK_HEADSET |
-            AudioSystem.DEVICE_OUT_ALL_USB;
+            AudioSystem.DEVICE_OUT_ALL_USB |
+            AudioSystem.DEVICE_OUT_PROXY; // use fixed volume on proxy device(WiFi display)
 
     // TODO merge orientation and rotation
     private final boolean mMonitorOrientation;
@@ -1160,7 +1160,7 @@ public class AudioService extends IAudioService.Stub {
         return delta;
     }
 
-    private void sendBroadcastToAll(Intent intent) {
+    protected void sendBroadcastToAll(Intent intent) {
         final long ident = Binder.clearCallingIdentity();
         try {
             mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
@@ -2936,12 +2936,10 @@ public class AudioService extends IAudioService.Stub {
             int index;
             if (isMuted()) {
                 index = 0;
-            } else if (mStreamVolumeAlias[mStreamType] == AudioSystem.STREAM_MUSIC &&
-                       (device & AudioSystem.DEVICE_OUT_ALL_A2DP) != 0 &&
+            } else if ((device & AudioSystem.DEVICE_OUT_ALL_A2DP) != 0 &&
                        mAvrcpAbsVolSupported) {
                 index = (mIndexMax + 5)/10;
-            }
-            else {
+            } else {
                 index = (getIndex(device) + 5)/10;
             }
             AudioSystem.setStreamVolumeIndex(mStreamType, index, device);
@@ -2966,6 +2964,9 @@ public class AudioService extends IAudioService.Stub {
                 if (device != AudioSystem.DEVICE_OUT_DEFAULT) {
                     if (isMuted()) {
                         index = 0;
+                    } else if ((device & AudioSystem.DEVICE_OUT_ALL_A2DP) != 0 &&
+                            mAvrcpAbsVolSupported) {
+                        index = (mIndexMax + 5)/10;
                     } else {
                         index = ((Integer)entry.getValue() + 5)/10;
                     }
@@ -3238,7 +3239,14 @@ public class AudioService extends IAudioService.Stub {
             for (int streamType = numStreamTypes - 1; streamType >= 0; streamType--) {
                 if (streamType != streamState.mStreamType &&
                         mStreamVolumeAlias[streamType] == streamState.mStreamType) {
-                    mStreamStates[streamType].applyDeviceVolume(getDeviceForStream(streamType));
+                    // Make sure volume is also maxed out on A2DP device for aliased stream
+                    // that may have a different device selected
+                    int streamDevice = getDeviceForStream(streamType);
+                    if ((device != streamDevice) && mAvrcpAbsVolSupported &&
+                            ((device & AudioSystem.DEVICE_OUT_ALL_A2DP) != 0)) {
+                        mStreamStates[streamType].applyDeviceVolume(device);
+                    }
+                    mStreamStates[streamType].applyDeviceVolume(streamDevice);
                 }
             }
 
@@ -3893,9 +3901,12 @@ public class AudioService extends IAudioService.Stub {
         // address is not used for now, but may be used when multiple a2dp devices are supported
         synchronized (mA2dpAvrcpLock) {
             mAvrcpAbsVolSupported = support;
-            VolumeStreamState streamState = mStreamStates[AudioSystem.STREAM_MUSIC];
             sendMsg(mAudioHandler, MSG_SET_DEVICE_VOLUME, SENDMSG_QUEUE,
-                    AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, 0, streamState, 0);
+                    AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, 0,
+                    mStreamStates[AudioSystem.STREAM_MUSIC], 0);
+            sendMsg(mAudioHandler, MSG_SET_DEVICE_VOLUME, SENDMSG_QUEUE,
+                    AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, 0,
+                    mStreamStates[AudioSystem.STREAM_RING], 0);
         }
     }
 

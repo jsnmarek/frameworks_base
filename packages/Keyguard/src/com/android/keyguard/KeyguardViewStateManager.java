@@ -15,8 +15,14 @@
  */
 package com.android.keyguard;
 
+import android.animation.Animator;
+import android.animation.Animator.AnimatorListener;
+import android.animation.AnimatorListenerAdapter;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 
@@ -45,6 +51,20 @@ public class KeyguardViewStateManager implements
     private int mPageIndexOnPageBeginMoving = -1;
 
     int mChallengeTop = 0;
+
+    private final AnimatorListener mPauseListener = new AnimatorListenerAdapter() {
+        public void onAnimationEnd(Animator animation) {
+            mKeyguardSecurityContainer.onPause();
+        }
+    };
+
+    private final AnimatorListener mResumeListener = new AnimatorListenerAdapter() {
+        public void onAnimationEnd(Animator animation) {
+            if (((View)mKeyguardSecurityContainer).isShown()) {
+                mKeyguardSecurityContainer.onResume(0);
+            }
+        }
+    };
 
     public KeyguardViewStateManager(KeyguardHostView hostView) {
         mKeyguardHostView = hostView;
@@ -102,20 +122,20 @@ public class KeyguardViewStateManager implements
     }
 
     public void fadeOutSecurity(int duration) {
-        ((View) mKeyguardSecurityContainer).animate().alpha(0f).setDuration(duration).start();
+        ((View) mKeyguardSecurityContainer).animate().alpha(0f).setDuration(duration)
+                .setListener(mPauseListener);
     }
 
     public void fadeInSecurity(int duration) {
-        ((View) mKeyguardSecurityContainer).animate().alpha(1f).setDuration(duration).start();
+        ((View) mKeyguardSecurityContainer).animate().alpha(1f).setDuration(duration)
+                .setListener(mResumeListener);
     }
 
     public void onPageBeginMoving() {
         if (mChallengeLayout.isChallengeOverlapping() &&
                 mChallengeLayout instanceof SlidingChallengeLayout) {
             SlidingChallengeLayout scl = (SlidingChallengeLayout) mChallengeLayout;
-            if (!mKeyguardWidgetPager.isWarping()) {
-                scl.fadeOutChallenge();
-            }
+            scl.fadeOutChallenge();
             mPageIndexOnPageBeginMoving = mKeyguardWidgetPager.getCurrentPage();
         }
         // We use mAppWidgetToShow to show a particular widget after you add it--
@@ -137,11 +157,12 @@ public class KeyguardViewStateManager implements
     public void onPageSwitching(View newPage, int newPageIndex) {
         if (mKeyguardWidgetPager != null && mChallengeLayout instanceof SlidingChallengeLayout) {
             boolean isCameraPage = newPage instanceof CameraWidgetFrame;
+            if (isCameraPage) {
+                CameraWidgetFrame camera = (CameraWidgetFrame) newPage;
+                camera.setUseFastTransition(mKeyguardWidgetPager.isWarping());
+            }
             SlidingChallengeLayout scl = (SlidingChallengeLayout) mChallengeLayout;
             scl.setChallengeInteractive(!isCameraPage);
-            if (isCameraPage) {
-                scl.fadeOutChallenge();
-            }
             final int currentFlags = mKeyguardWidgetPager.getSystemUiVisibility();
             final int newFlags = isCameraPage ? (currentFlags | View.STATUS_BAR_DISABLE_SEARCH)
                     : (currentFlags & ~View.STATUS_BAR_DISABLE_SEARCH);
@@ -178,7 +199,7 @@ public class KeyguardViewStateManager implements
             boolean challengeOverlapping = mChallengeLayout.isChallengeOverlapping();
             if (challengeOverlapping && !newCurPage.isSmall()
                     && mPageListeningToSlider != newPageIndex) {
-                newCurPage.shrinkWidget();
+                newCurPage.shrinkWidget(true);
             }
         }
 
@@ -319,14 +340,18 @@ public class KeyguardViewStateManager implements
         }
     };
 
-    public void showUsabilityHints() {
+    public void showUsabilityHints(Context context) {
         mMainQueue.postDelayed( new Runnable() {
             @Override
             public void run() {
                 mKeyguardSecurityContainer.showUsabilityHint();
             }
         } , SCREEN_ON_RING_HINT_DELAY);
-        if (SHOW_INITIAL_PAGE_HINTS) {
+        if (Settings.System.getIntForUser(
+                context.getContentResolver(),
+                Settings.System.LOCKSCREEN_DISABLE_HINTS,
+                SHOW_INITIAL_PAGE_HINTS ? 0 : 1,
+                UserHandle.USER_CURRENT) == 0) {
             mKeyguardWidgetPager.showInitialPageHints();
         }
         if (mHideHintsRunnable != null) {

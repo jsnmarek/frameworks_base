@@ -775,6 +775,21 @@ public final class PowerManagerService extends IPowerManager.Stub
     }
 
     @Override // Binder call
+    public void updateWakeLockUids(IBinder lock, int[] uids) {
+        WorkSource ws = null;
+
+        if (uids != null) {
+            ws = new WorkSource();
+            // XXX should WorkSource have a way to set uids as an int[] instead of adding them
+            // one at a time?
+            for (int i = 0; i < uids.length; i++) {
+                ws.add(uids[i]);
+            }
+        }
+        updateWakeLockWorkSource(lock, ws);
+    }
+
+    @Override // Binder call
     public void updateWakeLockWorkSource(IBinder lock, WorkSource ws) {
         if (lock == null) {
             throw new IllegalArgumentException("lock must not be null");
@@ -1448,11 +1463,13 @@ public final class PowerManagerService extends IPowerManager.Stub
 
     private int getScreenOffTimeoutLocked() {
         int timeout = mScreenOffTimeoutSetting;
-        if (isMaximumScreenOffTimeoutFromDeviceAdminEnforcedLocked()) {
-            timeout = Math.min(timeout, mMaximumScreenOffTimeoutFromDeviceAdmin);
-        }
-        if (mUserActivityTimeoutOverrideFromWindowManager >= 0) {
-            timeout = (int)Math.min(timeout, mUserActivityTimeoutOverrideFromWindowManager);
+        if (timeout != mMaximumScreenOffTimeoutFromDeviceAdmin) {
+            if (isMaximumScreenOffTimeoutFromDeviceAdminEnforcedLocked()) {
+                timeout = Math.min(timeout, mMaximumScreenOffTimeoutFromDeviceAdmin);
+            }
+            if (mUserActivityTimeoutOverrideFromWindowManager >= 0) {
+                timeout = (int)Math.min(timeout, mUserActivityTimeoutOverrideFromWindowManager);
+            }
         }
         return Math.max(timeout, MINIMUM_SCREEN_OFF_TIMEOUT);
     }

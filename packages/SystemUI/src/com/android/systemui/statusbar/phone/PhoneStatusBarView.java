@@ -170,6 +170,9 @@ public class PhoneStatusBarView extends PanelBar {
         mBar.makeExpandedInvisibleSoon();
         mFadingPanel = null;
         mLastFullyOpenedPanel = null;
+        if (mScrimColor != 0 && ActivityManager.isHighEndGfx()) {
+            mBar.mStatusBarWindow.setBackgroundColor(0);
+        }
     }
 
     @Override
@@ -211,7 +214,8 @@ public class PhoneStatusBarView extends PanelBar {
             Log.v(TAG, "panelExpansionChanged: f=" + frac);
         }
 
-        if (panel == mFadingPanel && mScrimColor != 0 && ActivityManager.isHighEndGfx()) {
+        if ((panel == mFadingPanel || mFadingPanel == null)
+                && mScrimColor != 0 && ActivityManager.isHighEndGfx()) {
             if (mShouldFade) {
                 frac = mPanelExpandedFractionSum; // don't judge me
                 // let's start this 20% of the way down the screen
